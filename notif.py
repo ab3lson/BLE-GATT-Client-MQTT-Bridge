@@ -14,14 +14,17 @@ def handle_data(handle, value):
 try:
     adapter.start()
     print("Connecting...")
-    device = adapter.connect('34:14:B5:92:49:B2')
+    device = adapter.connect('64:69:4E:80:20:17')
+    time.sleep(2)
+    print("Sending: SEND")
+    device.char_write("0000ffe1-0000-1000-8000-00805f9b34fb", bytearray([0x53, 0x45, 0x4e, 0x44])) #Sends "SEND" to the device
     time.sleep(2)
     print("Subscribing...")
-    device.subscribe("0000dfb1-0000-1000-8000-00805f9b34fb", callback=handle_data)
+    device.subscribe("0000ffe1-0000-1000-8000-00805f9b34fb", callback=handle_data)
     time.sleep(2)
     print("Data returned:", notif)
     print("Unsubscribing...")
-    device.unsubscribe("0000dfb1-0000-1000-8000-00805f9b34fb", wait_for_response=False)
+    device.unsubscribe("0000ffe1-0000-1000-8000-00805f9b34fb", wait_for_response=False)
     time.sleep(2)
 except Exception as e:
     if (e != None): print("Exception:",e)
