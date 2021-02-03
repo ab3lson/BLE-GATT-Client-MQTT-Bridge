@@ -13,6 +13,7 @@ notification = ""
 
 #MQTT VARIABLES
 BROKER = '192.168.0.34'
+MQTT_TOPIC = 'ble/test'
 MQTT = mqtt.Client()
 MQTT.username_pw_set(username=creds.USERNAME,password=creds.PASSWORD)
 MQTT.connect(BROKER)
@@ -55,9 +56,10 @@ for sensor in sensors:
             else:	# Sends "SEND" to the device and waits for a notification to respond
                 print(f"[INFO] Connecting to device: {sensor['device']}")
                 device = adapter.connect(sensor['device'])
+                print(f"[INFO] Sending: \"SEND\"...")
                 device.char_write(sensor['characteristic'], bytearray([0x53, 0x45, 0x4e, 0x44])) # Sends "SEND" to the device
+                time.sleep(2)
                 try:
-                    time.sleep(2)
                     print("Subscribing...")
                     device.subscribe(sensor['characteristic'], callback=handle_data)
                     time.sleep(2)
@@ -77,9 +79,10 @@ for sensor in sensors:
 
 
 
-#print("Retrieved values:", values)
+print("[DEBUG] Retrieved values:", values)
 
-MQTT.publish("ble/test", json.dumps(values))
+print(f"[INFO] Sending data to {MQTT_TOPIC}")
+MQTT.publish(MQTT_TOPIC, json.dumps(values))
 time.sleep(1)
 
 MQTT.disconnect()
