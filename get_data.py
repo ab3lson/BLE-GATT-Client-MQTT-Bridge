@@ -44,9 +44,9 @@ print(f"Getting data from {len(sensors)} sensors!")
 for sensor in sensors:
     connection_attempts = 0
     while connection_attempts < 3:
-        print(f"- Connection attempt #{connection_attempts}")
+        print(f"- Connection attempt #{connection_attempts + 1}")
+        adapter.start()
         try:
-            adapter.start()
             if not sensor["notif"]: # Reads the characteristic data directly, if supported
                 print(f"[INFO] Connecting to device: {sensor['device']}")
                 device = adapter.connect(sensor['device'])
@@ -56,6 +56,9 @@ for sensor in sensors:
             else:	# Sends "SEND" to the device and waits for a notification to respond
                 print(f"[INFO] Connecting to device: {sensor['device']}")
                 device = adapter.connect(sensor['device'])
+                print(f"[INFO] Sending wake up string...")
+                device.char_write(sensor['characteristic'], bytearray([0x45]*80)) # Sends "E"*80 to wake it up
+                time.sleep(2)
                 print(f"[INFO] Sending: \"SEND\"...")
                 device.char_write(sensor['characteristic'], bytearray([0x53, 0x45, 0x4e, 0x44])) # Sends "SEND" to the device
                 time.sleep(2)
@@ -65,8 +68,6 @@ for sensor in sensors:
                     time.sleep(2)
                 except Exception as e:
                     if (e != None or e != "None"): print("Exception:",e)
-                print("Stopping Adapter...")
-                adapter.stop()
                 values.append({'device': sensor['device'], 'value': notification})
                 notification = ""
                 connection_attempts = 4 # Stops trying to connect, because it succeeded
