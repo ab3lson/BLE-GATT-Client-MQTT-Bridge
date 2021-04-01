@@ -4,6 +4,11 @@ import time
 import json
 import paho.mqtt.client as mqtt
 import config.creds as creds
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-v", "--verbose", help="Displays debug output", action="store_true")
+args = parser.parse_args()
 
 #BLE VARIABLES
 adapter = pygatt.backends.GATTToolBackend()
@@ -17,6 +22,10 @@ MQTT_TOPIC = 'ble/test'
 MQTT = mqtt.Client()
 MQTT.username_pw_set(username=creds.USERNAME,password=creds.PASSWORD)
 MQTT.connect(BROKER)
+
+def verbose(msg):
+    if args.verbose:
+        print(msg)
 
 def handle_data(handle, value):
     """
@@ -41,6 +50,7 @@ for line in sensor_info:
 
 
 print(f"[INFO] Getting data from {len(sensors)} sensors!")
+print("="*20,"\n")
 for sensor in sensors:
     connection_attempts = 0
     while connection_attempts < 4:
@@ -59,20 +69,21 @@ for sensor in sensors:
 #                print(f"[INFO] Sending wake up string...")
 #                device.char_write(sensor['characteristic'], bytearray([0x45]*80)) # Sends "E"*80 to wake it up
 #                time.sleep(2)
-                print(f"[DEBUG] Sending: \"SEND\"...")
+                verbose("[DEBUG] Sending: \"SEND\"...")
                 device.char_write(sensor['characteristic'], bytearray([0x53, 0x45, 0x4e, 0x44])) # Sends "SEND" to the device
                 time.sleep(2)
                 try:
-                    print("[DEBUG] Subscribing...")
+                    verbose("[DEBUG] Subscribing...")
                     device.subscribe(sensor['characteristic'], callback=handle_data)
                     time.sleep(2)
                 except Exception as e:
-                    if (e != None or e != "None"): print("Exception:",e)
-                print("[DEBUG] Received notification:", notification)
+                    if (e != "None"): verbose(f"[DEBUG] Exception: {e}")
+                verbose(f"[DEBUG] Received notification: {notification}")
                 if notification != "": # Checks that the notification actually has data
                     values.append({'device': sensor['device'], 'value': notification})
                     notification = ""
                     connection_attempts = 5 # Stops trying to connect, because it succeeded
+                else: print("[ERROR] The sensor connected, but no data was received!")
         except Exception as e:
             print(f"[ERROR] Could not connect to {sensor['device']}")
         finally:
@@ -83,7 +94,7 @@ for sensor in sensors:
 
 print("[INFO] Done receiving data!")
 
-print("[DEBUG] Retrieved values:", values)
+verbose(f"[DEBUG] Retrieved values: {values}")
 
 print(f"[INFO] Sending data to {MQTT_TOPIC}")
 MQTT.publish(MQTT_TOPIC, json.dumps(values))
