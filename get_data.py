@@ -18,10 +18,9 @@ notification = ""
 TIMEOUT = 20 # Seconds before timeout
 #MQTT VARIABLES
 BROKER = '192.168.0.34'
-MQTT_TOPIC = 'ble/test'
+MQTT_TOPIC = 'ble/autogarden'
 MQTT = mqtt.Client()
 MQTT.username_pw_set(username=creds.USERNAME,password=creds.PASSWORD)
-MQTT.connect(BROKER)
 
 def verbose(msg):
     if args.verbose:
@@ -50,21 +49,20 @@ for line in sensor_info:
 
 
 print(f"[INFO] Getting data from {len(sensors)} sensors!")
-print("="*20,"\n")
+print("="*30)
 for sensor in sensors:
     connection_attempts = 0
+    print(f"\n[INFO] Connecting to device: {sensor['device']}")
     while connection_attempts < 4:
         print(f"[INFO] - Connection attempt #{connection_attempts + 1}")
         adapter.start()
         try:
             if not sensor["notif"]: # Reads the characteristic data directly, if supported
-                print(f"[INFO] Connecting to device: {sensor['device']}")
                 device = adapter.connect(sensor['device'], timeout=TIMEOUT)
                 print(f"[INFO] Reading characteristic: {sensor['characteristic']}")
                 value = bytes(device.char_read(sensor['characteristic'])).decode('utf-8')
                 values.append({'device': sensor['device'], 'value': value})
             else:	# Sends "SEND" to the device and waits for a notification to respond
-                print(f"[INFO] Connecting to device: {sensor['device']}")
                 device = adapter.connect(sensor['device'], timeout=TIMEOUT)
 #                print(f"[INFO] Sending wake up string...")
 #                device.char_write(sensor['characteristic'], bytearray([0x45]*80)) # Sends "E"*80 to wake it up
@@ -90,14 +88,14 @@ for sensor in sensors:
             adapter.stop()
             connection_attempts += 1
 
-
-
 print("[INFO] Done receiving data!")
 
 verbose(f"[DEBUG] Retrieved values: {values}")
 
 print(f"[INFO] Sending data to {MQTT_TOPIC}")
+MQTT.connect(BROKER)
+time.sleep(2)
 MQTT.publish(MQTT_TOPIC, json.dumps(values))
-time.sleep(1)
+time.sleep(2)
 
 MQTT.disconnect()
